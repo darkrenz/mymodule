@@ -1,0 +1,43 @@
+remove_user() {
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+    config=$(grep -oP '(?<=config": \[).*(?=\])' "$CONFIG_FILE")
+    num_users=$(echo "$config" | tr -cd , | wc -c)
+    if [[ $num_users -eq 0 ]]; then
+        echo "There are no users to remove."
+    elif [[ $num_users -eq 1 ]]; then
+        echo "Cannot remove the users. At least two user must remain."
+    else
+        echo "Enter the User you want to remove"
+        echo -e ""
+        read -p "Remove:" username
+
+        # Check if the entered username exists in the configuration file
+        if grep -q "\"$username\"" "$CONFIG_FILE"; then
+            sed -i "/\"config\": \[/s/\"$username\",//" "$CONFIG_FILE"
+            systemctl restart zipvpn.service
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+echo -e ""
+echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username has been removed"
+            echo -e ""
+            sleep 0.1
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        else
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+echo -e ""
+echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username does not exist.!"
+            sleep 0.2
+echo -e ""
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        fi
+    fi
+}
+
+remove_user
