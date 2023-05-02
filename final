@@ -1,0 +1,204 @@
+#!/bin/bash
+# NOTE UDP Module
+
+
+NC="\e[0m"
+RED="\033[0;31m"
+YELLOW="\033[0;33m"
+
+CONFIG_FILE="/etc/zivpn/config.json"
+directory="/usr/local/bin/zivpn"
+
+# Get the list of running processes with the command name
+running_processes=$(ps -ef | awk '{print $8}' | grep "^$directory")
+
+zi_verify() {
+if [ -n "$running_processes" ]; then
+    clear
+    echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} ZIVPN DETECTED"
+    sleep 0.2
+    echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} Opening Menu"
+    sleep 3
+    verify_json
+else
+    clear
+    echo "You dont have Udp-zivpn installed"
+    sleep 0.2
+    echo "Please install the required file"
+    sleep 0.2
+    echo "Force to exit"
+    sleep 0.2
+    clear
+    exit 0
+fi
+}
+
+animation_test() {
+colors=('0;31' '0;33' '0;32' '0;34' '0;35' '0;36')  # array of ANSI color codes
+text="This Module was Created by
+NoteDeobfuscate please give credits
+and avoid stealing someone works"  # the text to animate
+delay=0.2  # delay between each animation frame
+
+for ((i=0;i<${#text};i++))
+do
+  color=${colors[$((RANDOM % ${#colors[@]}))]}  # select a random color
+  echo -e "\033[2J\033[;H"  # clear screen
+  echo -e "\033[${color}m${text:0:$i+1}\033[0m"  # print colored text
+  sleep $delay
+done
+    sleep 0.2
+    echo ""
+    read -n 1 -s -r -p "Press any key to return to menu..."
+    show_menu
+}
+
+show_menu() {
+clear
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC}    ${YELLOW}     • ZiVPN MODULE • ${NC}      ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+echo -e "${YELLOW}┌────────────────────────────────┐${NC}"
+echo -e "${YELLOW}│${NC}  ${YELLOW}[1]${NC} Add Client"
+echo -e "${YELLOW}│${NC}  ${YELLOW}[2]${NC} Remove Client!"
+echo -e "${YELLOW}│${NC}  ${YELLOW}[3]${NC} Check Existing User"
+echo -e "${YELLOW}│${NC}  ${YELLOW}[4]${NC} Module Info"
+echo -e "${YELLOW}│${NC}  ${YELLOW}[5]${NC} Exit"
+echo -e "${YELLOW}└────────────────────────────────┘${NC}"
+echo -e ""
+echo -ne "Select an option: "
+    read opt
+
+    case $opt in
+        1) clear ; add_user ;;
+        2) clear ; remove_user ;;
+        3) clear ; display_existing_users ;;
+        4) clear ; animation_test ;;
+        5) clear ; exit 0 ; clear ;;
+        *) clear ; show_menu ;;
+    esac
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC}    ${YELLOW}  • Credts@NoteDeobf • ${NC}     ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+}
+
+verify_json() {
+    if ! jq empty "$CONFIG_FILE" >/dev/null 2>&1; then
+        echo -e "${RED}┌────────────────────────────────┐${NC}"
+        echo -e "${RED}│${NC}   ${YELLOW}     • ZiVPN UPDATE • ${NC}       ${RED}│$NC"
+        echo -e "${RED}└────────────────────────────────┘${NC}"
+        sleep 0.2
+        echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} The configuration file $CONFIG_FILE is not valid or Broken JSON."
+        sleep 0.2
+        echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} System will now force to generate a new one."
+        sleep 0.2
+        echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} Please wait."
+        curl -sSL https://raw.githubusercontent.com/darkrenz/udp-zivpn/main/config.json -o "$CONFIG_FILE" >/dev/null 2>&1
+        echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} Successfully Generated."
+        sleep 0.2
+        clear
+    else
+        show_menu
+    fi
+}
+
+remove_user() {
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+    config=$(grep -oP '(?<=config": \[).*(?=\])' "$CONFIG_FILE")
+    num_users=$(echo "$config" | tr -cd , | wc -c)
+    if [[ $num_users -eq 0 ]]; then
+        echo "There are no users to remove."
+    elif [[ $num_users -eq 1 ]]; then
+        echo "Cannot remove the users. At least two user must remain."
+    else
+        echo "Enter the User you want to remove"
+        echo -e ""
+        read -p "Remove:" username
+        sed -i "/\"config\": \[/s/\"$username\",//" "$CONFIG_FILE"
+        systemctl restart zipvpn.service
+        clear
+        sleep 0.1
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+echo -e ""
+echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username has been removed"
+            echo -e ""
+            sleep 0.1
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        else
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+echo -e ""
+echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username does not exist.!"
+            sleep 0.2
+echo -e ""
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        fi
+    fi
+}
+
+add_user() {
+    echo -e "${RED}┌────────────────────────────────┐${NC}"
+    echo -e "${RED}│${NC}    ${YELLOW}    • ZiVPN ADD USER • ${NC}     ${RED}│${NC}"
+    echo -e "${RED}└────────────────────────────────┘${NC}"
+    echo -e ""
+    echo "Enter your desire Username"
+    echo -e ""
+    read -p "Add:" username
+    username=$(echo "$username" | tr -d '[:space:]') # Remove spaces from the username
+    sed -i "/\"config\": \[/s/\]/,\"$username\"\]/" "$CONFIG_FILE"
+    systemctl restart zipvpn.service
+    clear
+    echo -e "${RED}┌────────────────────────────────┐${NC}"
+    echo -e "${RED}│${NC}    ${YELLOW}    • ZiVPN ADD USER • ${NC}     ${RED}│${NC}"
+    echo -e "${RED}└────────────────────────────────┘${NC}"
+    echo -e ""
+    echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username has been added"
+    echo -e ""
+    sleep 0.2
+    read -n 1 -s -r -p "Press any key to return to menu..."
+    show_menu
+    clear
+}
+
+
+display_existing_users() {
+    # Check if the config file exists
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "Config file not found: $CONFIG_FILE"
+        exit 1
+    fi
+
+    # Extract the auth config from the file and grep for the usernames
+    usernames=$(cat "$CONFIG_FILE" | jq '.auth.config[]' | grep -oE '["][^"]+["]' | tr -d '"')
+
+    # Check if any usernames were found
+    if [ -z "$usernames" ]; then
+        echo "No usernames found in config file"
+        exit 1
+    fi
+
+    # Display the list of usernames as a numbered menu
+echo -e "${RED}┌────────────────────────────────┐${NC}"
+echo -e "${RED}│${NC} ${YELLOW}     • ZiVPN Client List • ${NC}    ${RED}│$NC"
+echo -e "${RED}└────────────────────────────────┘${NC}"
+    echo -e ""
+    echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} Current Users :"
+    i=1
+    for username in $usernames; do
+        echo "$i. $username"
+        ((i++))
+    done
+    sleep 0.2
+    echo -e ""
+    read -n 1 -s -r -p " Press any key to return ..."
+    show_menu
+}
+
+zi_verify
