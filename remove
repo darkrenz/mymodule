@@ -1,0 +1,48 @@
+CONFIG_FILE="/etc/zivpn/config.json"
+
+remove_user() {
+    echo -e "${RED}┌────────────────────────────────┐${NC}"
+    echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+    echo -e "${RED}└────────────────────────────────┘${NC}"
+    
+    config=$(jq -r '.config' "$CONFIG_FILE")
+    num_users=$(echo "$config" | jq 'length')
+    
+    if [[ $num_users -eq 0 ]]; then
+        echo "There are no users to remove."
+    elif [[ $num_users -eq 1 ]]; then
+        echo "Cannot remove the user. At least two users must remain."
+    else
+        echo "Enter the username you want to remove:"
+        read -p "Remove: " username
+        
+        # Check if the entered username exists in the configuration file
+        if echo "$config" | jq -e ".[] | select(.username == \"$username\")" > /dev/null; then
+            new_config=$(echo "$config" | jq "map(select(.username != \"$username\"))")
+            jq ".config = $new_config" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+            systemctl restart zipvpn.service
+            
+            echo -e "${RED}┌────────────────────────────────┐${NC}"
+            echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+            echo -e "${RED}└────────────────────────────────┘${NC}"
+            echo -e ""
+            echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username has been removed"
+            echo -e ""
+            sleep 0.1
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        else
+            echo -e "${RED}┌────────────────────────────────┐${NC}"
+            echo -e "${RED}│${NC} ${YELLOW}    • ZiVPN USER REMOVER • ${NC}    ${RED}│$NC"
+            echo -e "${RED}└────────────────────────────────┘${NC}"
+            echo -e ""
+            echo -e "${YELLOW}[${NC}${RED}INFO${NC}${YELLOW}]${NC} $username does not exist!"
+            echo -e ""
+            sleep 0.2
+            read -n 1 -s -r -p " Press any key to return ..."
+            show_menu
+        fi
+    fi
+}
+
+remove_user
