@@ -1,0 +1,76 @@
+#!/bin/bash
+
+CONFIG_FILE="/etc/zivpn/config.json"
+MAX_USERNAMES=7
+
+# Function to display the list of usernames
+display_usernames() {
+  echo "Usernames:"
+  echo "┌───────────┐"
+  grep -oP '(?<=\[\s?")[^"]+' "$CONFIG_FILE" | awk '{printf "│%12s │\n", $0}'
+  echo "└───────────┘"
+}
+
+# Function to add a username to the JSON config file
+add_username() {
+  if [ $(grep -oP '(?<=\[\s?")[^"]+' "$CONFIG_FILE" | wc -l) -ge $MAX_USERNAMES ]; then
+    echo "Maximum number of usernames ($MAX_USERNAMES) reached."
+  else
+    echo "Enter the username (max 7 characters):"
+    read -n 7 username
+
+    # Check if the username already exists in the config
+    if grep -q "\"$username\"" "$CONFIG_FILE"; then
+      echo "Username already exists."
+    else
+      sed -i '/"config": \[/ s/]$/, "'"$username"'"]/g' "$CONFIG_FILE"
+      echo "Username added successfully."
+      display_usernames
+    fi
+  fi
+}
+
+# Function to remove a username from the JSON config file
+remove_username() {
+  echo "Enter the username to remove (max 7 characters):"
+  read -n 7 username
+
+  # Check if the username exists in the config
+  if grep -q "\"$username\"" "$CONFIG_FILE"; then
+    sed -i '/"config": \[/ s/,\? "'"$username"'"\?//g' "$CONFIG_FILE"
+    echo "Username removed successfully."
+    display_usernames
+  else
+    echo "Username not found."
+  fi
+}
+
+# Function to fix the JSON format of the config file
+fix_json_format() {
+  mv "$CONFIG_FILE" "$CONFIG_FILE.bak"  # Create a backup of the original file
+
+  # Fix the JSON format using awk
+  awk '/"config": \[/ {print; printf("    \"%s\"\n", "'"$username"'"); next} 1' "$CONFIG_FILE.bak" > "$CONFIG_FILE"
+
+  echo "JSON format fixed."
+}
+
+# Menu loop
+while true; do
+  echo "Menu:"
+  echo "1. Add a username"
+  echo "2. Remove a username"
+  echo "3. Fix JSON format"
+  echo "4. Exit"
+  read -p "Enter your choice: " choice
+
+  case $choice in
+    1) add_username ;;
+    2) remove_username ;;
+    3) fix_json_format ;;
+    4) break ;;
+    *) echo "Invalid choice. Please try again." ;;
+  esac
+
+  echo
+done
