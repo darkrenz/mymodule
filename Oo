@@ -1,0 +1,76 @@
+#!/bin/bash
+
+CONFIG_FILE="/etc/zivpn/config.json"
+MAX_USERNAMES=7
+
+# Function to display the list of usernames
+display_usernames() {
+  echo "Usernames:"
+  echo "┌─────────────┐"
+  jq -r '.auth.config[]' "$CONFIG_FILE" | awk '{printf "│%12s │\n", $0}'
+  echo "└─────────────┘"
+}
+
+# Function to add a username to the JSON config file
+add_username() {
+  if [ $(jq '.auth.config | length' "$CONFIG_FILE") -ge $MAX_USERNAMES ]; then
+    echo "Maximum number of usernames ($MAX_USERNAMES) reached."
+  else
+    echo "Enter the username (max 7 characters):"
+    read -n 7 username
+
+    # Check if the username already exists in the config
+    if grep -q "\"$username\"" "$CONFIG_FILE"; then
+      echo "Username already exists."
+    else
+      jq --arg username "$username" '.auth.config += [$username]' "$CONFIG_FILE" > temp.json && mv temp.json "$CONFIG_FILE"
+      echo "Username added successfully."
+      display_usernames
+      systemctl restart zivpn.service
+    fi
+  fi
+}
+
+# Function to remove a username from the JSON config file
+remove_username() {
+  echo "Enter the username to remove (max 7 characters):"
+  read -n 7 username
+
+  # Check if the username exists in the config
+  if jq -e ".auth.config | index(\"$username\")" "$CONFIG_FILE" >/dev/null; then
+    jq --arg username "$username" '.auth.config -= [$username]' "$CONFIG_FILE" > temp.json && mv temp.json "$CONFIG_FILE"
+    echo "Username removed successfully."
+    display_usernames
+    systemctl restart zivpn.service
+  else
+    echo "Username not found."
+  fi
+}
+
+# Function to fix the JSON format of the config file
+fix_json_format() {
+
+  # Fix the JSON format using jq
+  jq -r '.' "$CONFIG_FILE.bak" > "$CONFIG_FILE"
+  echo "JSON format fixed."
+}
+
+# Menu loop
+while true; do
+  echo "Menu:"
+  echo "1. Add a username"
+  echo "2. Remove a username"
+  echo "3. Fix JSON format"
+  echo "4. Exit"
+  read -p "Enter your choice: " choice
+
+  case $choice in
+    1) add_username ;;
+    2) remove_username ;;
+    3) fix_json_format ;;
+    4) break ;;
+    *) echo "Invalid choice. Please try again." ;;
+  esac
+
+  echo
+done
