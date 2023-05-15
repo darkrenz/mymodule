@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Function to display the current user list and sort them
+display_users() {
+  echo "Current users:"
+  users=( "${config[@]}" )
+  sorted_users=($(printf '%s\n' "${users[@]}" | sort))
+  
+  for user in "${sorted_users[@]}"; do
+    echo "$user"
+  done
+}
+
+
+
+
+# Bash menu options
+PS3="Enter your choice: "
+options=("Display current users" "Quit")
+
+# Bash menu loop
+while true; do
+  echo "-----------------------"
+  echo "      MAIN MENU        "
+  echo "-----------------------"
+  select opt in "${options[@]}"; do
+    case $opt in
+      "Display current users")
+        display_users
+        break
+        ;;
+      "Quit")
+        echo "Exiting..."
+        exit 0
+        ;;
+      *) 
+        echo "Invalid option. Try again."
+        break
+        ;;
+    esac
+  done
+done
