@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Function to add a username
+add_username() {
+    read -p "Enter the new username (max 10 letters): " new_username
+    if [[ ! $new_username =~ ^[a-zA-Z0-9]{1,10}$ ]]; then
+        echo "Invalid username! Please enter a maximum of 10 letters without special characters."
+    else
+        sed -i "s/\(\"config\": \[\)/\1\"$new_username\", /" /etc/zivpn/config.json
+        echo "Username \"$new_username\" added successfully!"
+    fi
+}
+
+# Function to change a username
+change_username() {
+    read -p "Enter the index of the username you want to change: " index
+    read -p "Enter the new username (max 10 letters): " new_username
+    if [[ ! $new_username =~ ^[a-zA-Z0-9]{1,10}$ ]]; then
+        echo "Invalid username! Please enter a maximum of 10 letters without special characters."
+    else
+        sed -i "s/\(\"config\": \[\([^]]*\), \)\{$index\}\([^]]*\)/\1\"$new_username\"\3/" /etc/zivpn/config.json
+        echo "Username at index $index changed to \"$new_username\" successfully!"
+    fi
+}
+
+# Function to remove a username
+remove_username() {
+    read -p "Enter the index of the username you want to remove: " index
+    sed -i "${index}s/[^,]*//" /etc/zivpn/config.json
+    sed -i 's/,\(.*\),/\1,/' /etc/zivpn/config.json
+    echo "Username at index $index removed successfully!"
+}
+
+# Display the menu and process user's choice
+while true; do
+    echo "Menu:"
+    echo "1. Add Username"
+    echo "2. Change Username"
+    echo "3. Remove Username"
+    echo "4. Exit"
+
+    read -p "Enter your choice: " choice
+    case $choice in
+        1)
+            add_username
+            systemctl restart zivpn.service
+            ;;
+        2)
+            change_username
+            systemctl restart zivpn.service
+            ;;
+        3)
+            remove_username
+            systemctl restart zivpn.service
+            ;;
+        4)
+            echo "Exiting..."
+            exit 0
+            ;;
+        *)
+            echo "Invalid choice! Please enter a valid option."
+            ;;
+    esac
+
+    echo
+done
