@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Read the usernames from the config.json file
+usernames=($(grep -oP '(?<=config": \[")[^"]*' /etc/zivpn/config.json))
+
+# Display the menu
+echo "Current Users:"
+echo "--------------"
+for ((i=0; i<${#usernames[@]}; i++)); do
+    echo "User$((i+1)): ${usernames[i]}"
+done
