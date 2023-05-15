@@ -1,0 +1,27 @@
+#!/bin/bash
+
+json_file="/path/to/json/file.json"
+
+# Function to edit the JSON file
+edit_json() {
+    # Load JSON content
+    json=$(cat "$json_file")
+
+    # Update the "config" array with new usernames
+    if [[ "$json" == *'"config":'* ]]; then
+        new_username=$(echo "$1" | sed 's/"/\\"/g')  # Escape double quotes
+        updated_json=$(echo "$json" | sed 's/\("config":\s*\[\)/\1"'$new_username'", /')
+    else
+        updated_json=$(echo "$json" | sed 's/\("auth":\s*{\)/\1\n    "config": ["'$1'"]/') 
+    fi
+
+    # Save the updated JSON content
+    echo "$updated_json" > "$json_file"
+    echo "JSON file updated successfully."
+}
+
+# Read the username from the user
+read -p "Enter the new username: " username
+
+# Edit the JSON file
+edit_json "$username"
