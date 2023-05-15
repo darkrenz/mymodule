@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Function to load the JSON file
+load_config() {
+    config=$(cat /etc/zivpn/zivpn)
+}
+
+# Function to save the updated JSON file
+save_config() {
+    echo "$config" > /etc/zivpn/zivpn
+}
+
+# Function to check if a username exists
+username_exists() {
+    local username=$1
+    if [[ $(echo "$config" | jq '.auth.config | index("'"$username"'")') != "null" ]]; then
+        return 0 # Username exists
+    else
+        return 1 # Username does not exist
+    fi
+}
+
+# Function to display current users
+display_users() {
+    local users=$(echo "$config" | jq -r '.auth.config[]')
+    if [[ -z "$users" ]]; then
+        echo "No users found."
+    else
+        echo -e "Current users:\n"
+        echo "$users" | awk '{print "User", NR, $0}'
+    fi
+}
+
+# Function to add a username
+add_username() {
+    display_users
+    read -p "Enter the username to add (maximum 10 letters, no special characters): " username
+    if [[ ${#username} -gt 10 || ! $username =~ ^[a-zA-Z0-9]+$ ]]; then
+        echo "Invalid username. Please enter a maximum of 10 letters without any special characters."
+    elif username_exists "$username"; then
+        echo "Username already exists."
+    else
+        config=$(echo "$config" | jq '.auth.config += ["'"$username"'"]')
+        save_config
+        echo "Username added successfully."
+    fi
+}
+
+# Function to remove a username
+remove_user() {
+    display_users
+    read -p "Enter the username to remove: " username
+    if username_exists "$username"; then
+        config=$(echo "$config" | jq 'del(.auth.config['"$(echo "$config" | jq '.auth.config | index("'"$username"'")')")'])')
+        save_config
+        echo "Username removed successfully."
+    else
+        echo "Username not found."
+    fi
+}
+
+# Function to change a username
+change_username() {
+    display_users
+    read -p "Enter the current username: " old_username
+    read -p "Enter the new username: " new_username
+    if [[ ${#new_username} -gt 10 || ! $new_username =~ ^[a-zA-Z0-9]+$ ]]; then
+        echo "Invalid username. Please enter a maximum of 10 letters without any special characters."
+    elif username_exists "$old_username"; then
+        config=$(echo "$config" | jq '.auth.config['"$(echo "$config" | jq '.auth.config | index("'"$old_username"'")')") = "'"${new_username}"'"'])
+        save_config
+        echo "Username changed successfully."
+    else
+        echo "Username not found."
+    fi
+}
+
+# Main menu loop
+while true; do
+    echo -e "\nUDP Menu:"
+    echo "1. Add username"
+    echo "2. Remove username"
+    echo "3. Change username"
+    echo "4. Exit"
+    read -p "Enter your choice (1-4): " choice
+
+    case $choice in
+        1)
+            add_username
+            systemctl restart zivpn.service
+            ;;
+        2)
+            remove_user
+            systemctl restart zivpn.service
+            ;;
+        3)
+            change_username
+                systemctl restart zivpn.service
+            ;;
+        4)
+            break
+            ;;
+        *)
+            echo "Invalid choice. Please try again."
+            ;;
+esac
+
+        
+            
