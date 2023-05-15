@@ -1,0 +1,24 @@
+# Function to add a username
+add_username() {
+    read -p "Enter the new username (max 10 letters): " new_username
+    if [[ ! $new_username =~ ^[a-zA-Z0-9]{1,10}$ ]]; then
+        echo "Invalid username! Please enter a maximum of 10 letters without special characters."
+    else
+        # Read the existing usernames from the config.json file
+        usernames=($(grep -oP '(?<=config": \[)[^\]]*' /etc/zivpn/config.json | tr -d '[]," '))
+
+        # Remove the default username "zi" if present
+        usernames=("${usernames[@]//zi}")
+
+        # Append the new username to the existing usernames
+        usernames+=("$new_username")
+
+        # Generate the new config string
+        new_config_str="\"config\": [$(printf "\"%s\"," "${usernames[@]}" | sed 's/,$//')]"
+
+        # Replace the existing config string with the new one in the config.json file
+        sed -i -E "s/\"config\": ?\[[[:space:]]*\"zi\"[[:space:]]*\]/${new_config_str}/g" /etc/zivpn/config.json
+
+        echo "Username \"$new_username\" added successfully!"
+    fi
+}
